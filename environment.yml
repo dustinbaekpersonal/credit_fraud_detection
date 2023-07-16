@@ -1,0 +1,32 @@
+name: ml_test
+
+channels: 
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pip
+  - pandas=2.0.0
+  - matplotlib=3.7.1
+  - scikit-learn=1.2.2
+  - scipy
+  - joblib
+  - pyyaml=6.0
+  - seaborn
+  - imbalanced-learn
+  - cython
+  - scikit-image
+  - memory_profiler
+  - pytest
+  - pytest-cov
+  - flake8
+  - black
+  - mypy
+  - pyamg
+  - sphinx
+  - sphinx-gallery
+  - numpydoc
+  - sphinx-prompt
+  - plotly
+  - conda-lock
