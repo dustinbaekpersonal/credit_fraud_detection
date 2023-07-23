@@ -14,23 +14,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PowerTransformer, RobustScaler
 
 
-# class DataViz:
-#     """This is class for data visualisation"""
-#     def correlation(self, input_df: pd.DataFrame):
-#         """This function shows correlation"""
-#         corr = input_df.corr()
-#         sns.heatmap(corr, cmap="coolwarm_r")
-#         plt.title("Correlatoin Matrix for Balanced Dataset")
-#         plt.show()
-
-#     # def twoD_mapping(self, mode:str):
-#     #     if mode == 'tsne':
-
-#     #     elif mode == 'pca':
-
-#     #     elif mode == ''
-
-
 class DataPreprocess(BaseEstimator, TransformerMixin):
     """
     Contains different Data Preprocessing methods
@@ -78,14 +61,12 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
         input_df.drop(["Amount", "Time"], axis=1, inplace=True)
         return input_df
 
-    def treat_skewness(
-        self, fit_df: pd.DataFrame, transform_df: pd.DataFrame
-    ) -> pd.DataFrame:
+    def treat_skewness(self, fit_df: pd.DataFrame, transform_df: pd.DataFrame) -> pd.DataFrame:
         """
         Apply a power transform featurewise to make data more Gaussian-like.
-        Power transforms are a family of parametric, 
+        Power transforms are a family of parametric,
         monotonic transformations that are applied to make data more Gaussian-like.
-        This is useful for modeling issues related to heteroscedasticity (non-constant variance), 
+        This is useful for modeling issues related to heteroscedasticity (non-constant variance),
         or other situations where normality is desired.
 
         Parameters
@@ -109,9 +90,7 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
             axis=1,
         )
         tmp.set_index("Features", inplace=True)
-        skewed_features = tmp.loc[
-            (tmp["Skewness"] > 1) | (tmp["Skewness"] < -1)
-        ].index.tolist()
+        skewed_features = tmp.loc[(tmp["Skewness"] > 1) | (tmp["Skewness"] < -1)].index.tolist()
         print(f"Following features are skewed: {skewed_features}")
         power_transformer = PowerTransformer()
         power_transformer.fit(fit_df)
@@ -173,8 +152,6 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
         )
         sns.barplot(x="Class", y="Value", data=df_class)
         plt.title("Class Distributions \n (0: No Fraud 1: Fraud)")
-        # plt.show()
-
 
     def stratify_df(
         self, input_df: pd.DataFrame, test_size: float, stratify: List[str]
@@ -200,34 +177,6 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
             random_state=42,
         )
         return X_train, X_test, y_train, y_test
-    
-    # def stratify_df(
-    #     self, input_df: pd.DataFrame, n_splits: int = 10
-    # ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    #     """
-    #     before undersampling or oversampling, train and test data should be splitted.
-    #     because we only want to subsample training dataset, not test dataset.
-    #     StratifiedKFold is implemented
-
-    #     Parameters
-    #     ----------
-    #     input_df: pandas dataframe
-    #     n_splits: number of folds for stratified K fold
-
-    #     Returns
-    #     -------
-    #     original_Xtrain, original_Xtest, original_ytrain, original_ytest
-    #     """
-
-    #     X = input_df.drop("Class", axis=1)
-    #     y = input_df["Class"]
-    #     sss = StratifiedKFold(n_splits=n_splits, random_state=None, shuffle=False)
-
-    #     for _, (train_idx, test_idx) in enumerate(sss.split(X, y)):
-    #         original_Xtrain, original_Xtest = X.iloc[train_idx], X.iloc[test_idx]
-    #         original_ytrain, original_ytest = y.iloc[train_idx], y.iloc[test_idx]
-
-    #     return original_Xtrain, original_Xtest, original_ytrain, original_ytest
 
     def subsample(self, input_df: pd.DataFrame, mode: str = "undersampling") -> pd.DataFrame:
         """
@@ -246,11 +195,8 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
             df_sample = input_df.sample(frac=1)  # shuffling
             print(len(df_sample))
             fraud_df = df_sample.loc[df_sample["Class"] == 1]
-            non_fraud_df = df_sample.loc[df_sample["Class"] == 0].sample(
-                n=len(fraud_df)
-            )
+            non_fraud_df = df_sample.loc[df_sample["Class"] == 0].sample(n=len(fraud_df))
             new_df = pd.concat([fraud_df, non_fraud_df]).sample(frac=1, random_state=42)
-            # print(new_df['Class'].value_counts()/len(new_df))
 
             return new_df
 
@@ -298,37 +244,29 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
         if mode.casefold() == "z-score":
             # this will be robust z-score aka median abs deviation method
             temp = list(map(lambda x: _mad(x), input_df))
-            drop_idx = list(
-                set(element for nested_list in temp for element in nested_list)
-            )
+            drop_idx = list(set(element for nested_list in temp for element in nested_list))
             return input_df.drop(index=drop_idx, inplace=True)
 
         elif mode.casefold() == "iqr":
             temp = list(map(lambda x: _iqr(x), input_df))
-            drop_idx = list(
-                set(element for nested_list in temp for element in nested_list)
-            )
+            drop_idx = list(set(element for nested_list in temp for element in nested_list))
             return input_df.drop(index=drop_idx, inplace=True)
-
-        # elif mode.casefold()=='dbscan':
 
         else:
             raise ValueError("mode should be either z-score, iqr, or dbscan")
-
-    # def drop_outlier():
 
 
 if __name__ == "__main__":
     PATH = "../../data/raw/creditcard.csv"
     df = pd.read_csv(PATH)
     data_prep = DataPreprocess()
-    
+
     (
         original_Xtrain,
         original_Xtest,
         original_ytrain,
         original_ytest,
-    ) = data_prep.stratify_df(df)
+    ) = data_prep.stratify_df(df, 0.1, ["Class"])
     # print(len(df))
     # print(len(original_Xtrain))
     # print(len(original_Xtest))
@@ -336,8 +274,6 @@ if __name__ == "__main__":
     # print(type(original_ytest))
     print(original_ytrain.value_counts())
     print(original_ytest.value_counts())
-
-    
 
     # data_prep.check_imbalanced(df)
 

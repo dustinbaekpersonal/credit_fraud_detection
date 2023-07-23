@@ -1,10 +1,10 @@
 # Testing ML Pipeline training
 
-Welcome to the ML Testing training! 
+Welcome to the ML Testing training!
 
 ## :wrench: Developer set up
 
-To take part in the training course you will need to clone this repository and set up the local development environment. 
+To take part in the training course you will need to clone this repository and set up the local development environment.
 
 First clone the repo. In a terminal, navigate to a folder you want to clone the code to then run:
 
@@ -23,13 +23,13 @@ $ conda activate ml_test
 
 
 ```bash
-$ 
-$ 
+$
+$
 ```
 
 
 ```bash
-$ 
-$ 
-$ 
+$
+$
+$
 ```

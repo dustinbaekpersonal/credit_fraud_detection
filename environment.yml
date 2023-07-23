@@ -1,6 +1,6 @@
 name: ml_test
 
-channels: 
+channels:
   - conda-forge
   - defaults
 

@@ -1,0 +1,13 @@
+*.pptx
+*.txt
+!requirements.txt
+.ipynb_checkpoints
+**/__pycache__/
+**/.vs/
+**/.DS_Store
+*.csv
+.gitattributes
+.pytest_cache/
+.venv/
+.vscode/
+.tool-versions
