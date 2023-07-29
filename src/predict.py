@@ -1,11 +1,18 @@
 import pickle
+import sys
 
 import pandas as pd
-from sklearn.metrics import average_precision_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    average_precision_score,
+    classification_report,
+    confusion_matrix,
+    recall_score,
+)
 
 from data.preprocess import DataPreprocess
 
-filename = "rf_cv_base.pkl"
+mode = sys.argv[1]
+filename = f"rf_cv_{mode}.pkl"
 model_path = f"../data/trained_model/{filename}"
 best_model = pickle.load(open(model_path, "rb"))
 
@@ -30,7 +37,8 @@ y_true = y_test
 target_names = ["class 0", "class 1"]
 print(classification_report(y_true=y_true, y_pred=y_pred, target_names=target_names))
 print(confusion_matrix(y_true=y_true, y_pred=y_pred))
-print(f"{average_precision_score(y_true=y_true, y_score=y_pred):.3f}")
+print(f"Average Precision Score: {average_precision_score(y_true=y_true, y_score=y_pred):.3f}")
+print(f"Recall score is {recall_score(y_true=y_true, y_pred=y_pred):.3f}")
 df_eval = pd.DataFrame({"pred": y_pred, "true": y_true})
 print(
     df_eval[

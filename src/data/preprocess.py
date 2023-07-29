@@ -8,13 +8,12 @@ import pandas as pd
 import seaborn as sns
 from imblearn.over_sampling import SMOTE
 from scipy import stats
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PowerTransformer, RobustScaler
 
 
-class DataPreprocess(BaseEstimator, TransformerMixin):
+class DataPreprocess:
     """
     Contains different Data Preprocessing methods
     """
@@ -192,12 +191,9 @@ class DataPreprocess(BaseEstimator, TransformerMixin):
 
         if mode.casefold() == "undersampling":
             # Random under sampling of majority class
-            df_sample = input_df.sample(frac=1)  # shuffling
-            print(len(df_sample))
-            fraud_df = df_sample.loc[df_sample["Class"] == 1]
-            non_fraud_df = df_sample.loc[df_sample["Class"] == 0].sample(n=len(fraud_df))
-            new_df = pd.concat([fraud_df, non_fraud_df]).sample(frac=1, random_state=42)
-
+            fraud_df = input_df[input_df["Class"] == 1]
+            non_fraud_df = input_df[input_df["Class"] == 0].sample(n=len(fraud_df))
+            new_df = pd.concat([fraud_df, non_fraud_df])
             return new_df
 
         elif mode.casefold() == "oversampling":
@@ -267,25 +263,16 @@ if __name__ == "__main__":
         original_ytrain,
         original_ytest,
     ) = data_prep.stratify_df(df, 0.1, ["Class"])
-    # print(len(df))
-    # print(len(original_Xtrain))
-    # print(len(original_Xtest))
 
-    # print(type(original_ytest))
-    print(original_ytrain.value_counts())
-    print(original_ytest.value_counts())
+    print(original_Xtrain.sample(frac=1).head(5))
+    # print(original_ytrain.value_counts())
+    # print(original_ytest.value_counts())
 
     # data_prep.check_imbalanced(df)
 
-    # # df_under = data_prep.subsample(df, mode='undersampling')
-    # df_over = data_prep.subsample(df, mode='oversampling')
+    # df_under = data_prep.subsample(df, mode="undersampling")
 
-    # X_clean = data_prep.cleaning(original_Xtrain)
-    # X_scaled = data_prep.scaling(X_clean)
-    # X_treat_skew = data_prep.treat_skewness(fit_df=X_scaled, transform_df=X_scaled)
+    # print(df_under["Class"].value_counts())
 
-    # # remove outlier, dont use it => rubbish
-    # outlier_list=data_prep.find_outlier(df_over, mode='iqr')
-    # print(len(outlier_list))
-    # # for x,y in zip(df_under.columns,outlier_list):
-    # #     print(f"{x} || {len(y)}")
+    # df_over = data_prep.subsample(df, mode="oversampling")
+    # print(df_over["Class"].value_counts())
