@@ -1,4 +1,5 @@
 import pickle
+import sys
 import time
 
 import pandas as pd
@@ -68,14 +69,14 @@ def train_model(
         over_df = data_prep.subsample(
             pd.concat([original_Xtrain, original_ytrain], axis=1), mode="oversampling"
         )
-        over_df = data_prep.scaling(data_prep.cleaning(over_df)).sample(frac=0.5)
+        over_df = data_prep.scaling(data_prep.cleaning(over_df))
         X_train = over_df.drop("Class", axis=1)
         y_train = over_df["Class"]
 
     # Model Training
     start_time = time.time()
     if model == "rf":
-        rf = RandomForestClassifier(random_state=42, class_weight="balanced_subsample", verbose=1)
+        rf = RandomForestClassifier(random_state=42, class_weight=None, verbose=1)
         if grid_search:
             rf_params = grid_params
             rf_cv = GridSearchCV(estimator=rf, param_grid=rf_params, n_jobs=-1, verbose=1, cv=4)
@@ -86,31 +87,33 @@ def train_model(
                     ascending=False
                 )
             )
+            # Saving trained Model
+            pickle.dump(best_model, open(model_path, "wb"))
 
         else:
             rf.fit(X_train, y_train)
+            # Saving trained Model
+            pickle.dump(rf, open(model_path, "wb"))
     print(f"time taken for training is {time.time() - start_time}")
-
-    # Saving trained Model
-    pickle.dump(best_model, open(model_path, "wb"))
 
 
 if __name__ == "__main__":
     path = "../data/raw/creditcard.csv"
-    filename = "rf_cv_under.pkl"
+    mode = sys.argv[1]
+    filename = f"rf_cv_{mode}.pkl"
     model_path = f"../data/trained_model/{filename}"
     rf_params = {
         "bootstrap": [True, False],
-        "max_depth": [10, 20, 30, 40, 50],
+        "max_depth": [10, 20, 30],
         "min_samples_leaf": [1, 2, 4],
-        "min_samples_split": [2, 5, 10],
-        "n_estimators": [200, 400, 600, 800, 1000],
+        "min_samples_split": [2, 5],
+        "n_estimators": [200, 300],
     }
     train_model(
         path=path,
         model="rf",
-        mode="under",
+        mode=mode,
         model_path=model_path,
-        grid_search=True,
+        grid_search=False,
         grid_params=rf_params,
     )
