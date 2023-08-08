@@ -1,5 +1,5 @@
+import argparse
 import pickle
-import sys
 import time
 
 import pandas as pd
@@ -41,37 +41,55 @@ def train_model(
     -------
     model pickle file dumped to given model path
     """
-
-    df_raw = pd.read_csv(path)
     data_prep = DataPreprocess()
-    (original_Xtrain, _, original_ytrain, _) = data_prep.stratify_df(
-        df_raw, test_size=0.1, stratify=["Class"]
-    )
-
-    if mode == "base":
-        # Baesline Model
-        new_df = pd.concat([original_Xtrain, original_ytrain], axis=1)
-        new_df = data_prep.scaling(data_prep.cleaning(new_df))
-        X_train = new_df.drop("Class", axis=1)
-        y_train = new_df["Class"]
-
-    elif mode == "under":
-        # Under-sampling Technique
-        under_df = data_prep.subsample(
-            pd.concat([original_Xtrain, original_ytrain], axis=1), mode="undersampling"
+    if path.split(".")[-1] == "csv":
+        df = pd.read_csv(path)
+        (original_Xtrain, _, original_ytrain, _) = data_prep.stratify_df(
+            df, test_size=0.1, stratify=["Class"]
         )
-        under_df = data_prep.scaling(data_prep.cleaning(under_df))
-        X_train = under_df.drop("Class", axis=1)
-        y_train = under_df["Class"]
+        if mode == "base":
+            # Baesline Model
+            new_df = pd.concat([original_Xtrain, original_ytrain], axis=1)
+            new_df = data_prep.scaling(data_prep.cleaning(new_df))
+            X_train = new_df.drop("Class", axis=1)
+            y_train = new_df["Class"]
 
-    elif mode == "over":
-        # Over-sampling Technique
-        over_df = data_prep.subsample(
-            pd.concat([original_Xtrain, original_ytrain], axis=1), mode="oversampling"
-        )
-        over_df = data_prep.scaling(data_prep.cleaning(over_df))
-        X_train = over_df.drop("Class", axis=1)
-        y_train = over_df["Class"]
+        elif mode == "under":
+            # Under-sampling Technique
+            under_df = data_prep.subsample(
+                pd.concat([original_Xtrain, original_ytrain], axis=1), mode="undersampling"
+            )
+            under_df = data_prep.scaling(data_prep.cleaning(under_df))
+            X_train = under_df.drop("Class", axis=1)
+            y_train = under_df["Class"]
+
+        elif mode == "over":
+            # Over-sampling Technique
+            over_df = data_prep.subsample(
+                pd.concat([original_Xtrain, original_ytrain], axis=1), mode="oversampling"
+            )
+            over_df = data_prep.scaling(data_prep.cleaning(over_df))
+            X_train = over_df.drop("Class", axis=1)
+            y_train = over_df["Class"]
+
+    elif path.split(".")[-1] == "snappy":
+        df = pd.read_parquet(path)
+        if mode == "base":
+            # Baesline Model
+            X_train = df.drop("Class", axis=1)
+            y_train = df["Class"]
+
+        elif mode == "under":
+            # Under-sampling Technique
+            under_df = data_prep.subsample(df, mode="undersampling")
+            X_train = under_df.drop("Class", axis=1)
+            y_train = under_df["Class"]
+
+        elif mode == "over":
+            # Over-sampling Technique
+            over_df = data_prep.subsample(df, mode="oversampling")
+            X_train = over_df.drop("Class", axis=1)
+            y_train = over_df["Class"]
 
     # Model Training
     start_time = time.time()
@@ -98,9 +116,21 @@ def train_model(
 
 
 if __name__ == "__main__":
-    path = "../data/raw/creditcard.csv"
-    mode = sys.argv[1]
-    filename = f"rf_cv_{mode}.pkl"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        help="mode of subsampling: base, under, over",
+        choices=["base", "under", "over"],
+        type=str,
+        default="base",
+    )
+    args = parser.parse_args()
+    arguments = args.__dict__
+
+    csv_path = "../data/raw/creditcard.csv"
+    pq_path = "../data/feature/treat_skew.parquet.snappy"
+
+    filename = f"rf_treat_skew_{arguments['mode']}.pkl"
     model_path = f"../data/trained_model/{filename}"
     rf_params = {
         "bootstrap": [True, False],
@@ -109,10 +139,11 @@ if __name__ == "__main__":
         "min_samples_split": [2, 5],
         "n_estimators": [200, 300],
     }
+
     train_model(
-        path=path,
+        path=pq_path,
         model="rf",
-        mode=mode,
+        mode=arguments["mode"],
         model_path=model_path,
         grid_search=False,
         grid_params=rf_params,

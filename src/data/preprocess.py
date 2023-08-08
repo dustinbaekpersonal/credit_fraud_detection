@@ -32,7 +32,7 @@ class DataPreprocess:
         df_imputed: imputed pandas dataframe
         """
 
-        if input_df.isnull().sum().any():
+        if input_df.isnull().sum().any() or input_df.isna().sum().any():
             fill_nan = SimpleImputer(missing_values="NaN", strategy="mean")
             df_imputed = pd.DataFrame(fill_nan.fit_transform(input_df))
             return df_imputed
@@ -60,7 +60,7 @@ class DataPreprocess:
         input_df.drop(["Amount", "Time"], axis=1, inplace=True)
         return input_df
 
-    def treat_skewness(self, fit_df: pd.DataFrame, transform_df: pd.DataFrame) -> pd.DataFrame:
+    def treat_skewness(self, input_df: pd.DataFrame) -> pd.DataFrame:
         """
         Apply a power transform featurewise to make data more Gaussian-like.
         Power transforms are a family of parametric,
@@ -74,12 +74,12 @@ class DataPreprocess:
 
         Returns
         -------
-        input_df: more gaussian like features of pandas dataframe
+        df: more gaussian like features of pandas dataframe
         """
-        var = fit_df.columns
+        var = input_df.columns
         skew_list = []
         for i in var:
-            skew_list.append(fit_df[i].skew())
+            skew_list.append(input_df[i].skew())
 
         tmp = pd.concat(
             [
@@ -92,9 +92,8 @@ class DataPreprocess:
         skewed_features = tmp.loc[(tmp["Skewness"] > 1) | (tmp["Skewness"] < -1)].index.tolist()
         print(f"Following features are skewed: {skewed_features}")
         power_transformer = PowerTransformer()
-        power_transformer.fit(fit_df)
-        gauss_df = power_transformer.transform(transform_df)
-        return pd.DataFrame(gauss_df, columns=transform_df.columns)
+        gauss_df = power_transformer.fit_transform(input_df)
+        return pd.DataFrame(gauss_df, columns=input_df.columns, index=input_df.index)
 
     def check_skewed(self, input_df: pd.DataFrame) -> matplotlib.figure.Figure:
         """
@@ -251,28 +250,44 @@ class DataPreprocess:
         else:
             raise ValueError("mode should be either z-score, iqr, or dbscan")
 
+    def preprocess(self, input_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Combining all the preprocess steps. So that we only need to use this attribute.
+        """
+        df = self.cleaning(input_df)
+        df = self.scaling(df)
+        df = self.treat_skewness(df)
+        return df
+
+    def save_parquet(self, input_df: pd.DataFrame, parquet_path: str):
+        """
+        saving preprocessed data to data/feature folder
+
+        Parameters
+        ----------
+        input_df: pandas dataframe
+        parquet_path: str, file path to data/feature folder
+
+        Returns
+        ------
+        saved parquet file to data/feature folder
+        """
+        input_df.to_parquet(path=parquet_path, engine="auto", compression="snappy")
+
 
 if __name__ == "__main__":
-    PATH = "../../data/raw/creditcard.csv"
+    PATH = "../data/raw/creditcard.csv"
     df = pd.read_csv(PATH)
     data_prep = DataPreprocess()
 
     (
         original_Xtrain,
-        original_Xtest,
+        _,
         original_ytrain,
-        original_ytest,
+        _,
     ) = data_prep.stratify_df(df, 0.1, ["Class"])
 
-    print(original_Xtrain.sample(frac=1).head(5))
-    # print(original_ytrain.value_counts())
-    # print(original_ytest.value_counts())
-
-    # data_prep.check_imbalanced(df)
-
-    # df_under = data_prep.subsample(df, mode="undersampling")
-
-    # print(df_under["Class"].value_counts())
-
-    # df_over = data_prep.subsample(df, mode="oversampling")
-    # print(df_over["Class"].value_counts())
+    df = data_prep.preprocess(original_Xtrain)
+    OUTPUT_PATH = "../data/feature/treat_skew.parquet.snappy"
+    df = pd.concat([df, original_ytrain], axis=1)
+    data_prep.save_parquet(df, OUTPUT_PATH)
