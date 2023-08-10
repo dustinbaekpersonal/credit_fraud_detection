@@ -68,7 +68,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     arguments = args.__dict__
 
-    PATH = "../data/raw/creditcard.csv"
+    # PATH = "../data/raw/creditcard.csv"
+    PATH = "../data/feature/clean_scaled.parquet.snappy"
 
     FILENAME = f"rf_clean_scaled_{arguments['mode']}.pkl"
     MODEL_PATH = f"../data/trained_model/{FILENAME}"

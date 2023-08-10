@@ -1,13 +1,11 @@
 """This is python script for preprocessing data"""
 from typing import List, Tuple
 
-import numpy as np
 import pandas as pd
 from imblearn.over_sampling import SMOTE
-from scipy import stats
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import PowerTransformer, RobustScaler
+from sklearn.preprocessing import RobustScaler
 
 
 class DataPreprocess:
@@ -56,41 +54,6 @@ class DataPreprocess:
         )
         input_df.drop(["Amount", "Time"], axis=1, inplace=True)
         return input_df
-
-    def treat_skewness(self, input_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Apply a power transform featurewise to make data more Gaussian-like.
-        Power transforms are a family of parametric,
-        monotonic transformations that are applied to make data more Gaussian-like.
-        This is useful for modeling issues related to heteroscedasticity (non-constant variance),
-        or other situations where normality is desired.
-
-        Parameters
-        ----------
-        input_df: pandas dataframe
-
-        Returns
-        -------
-        df: more gaussian like features of pandas dataframe
-        """
-        var = input_df.columns
-        skew_list = []
-        for i in var:
-            skew_list.append(input_df[i].skew())
-
-        tmp = pd.concat(
-            [
-                pd.DataFrame(var, columns=["Features"]),
-                pd.DataFrame(skew_list, columns=["Skewness"]),
-            ],
-            axis=1,
-        )
-        tmp.set_index("Features", inplace=True)
-        skewed_features = tmp.loc[(tmp["Skewness"] > 1) | (tmp["Skewness"] < -1)].index.tolist()
-        print(f"Following features are skewed: {skewed_features}")
-        power_transformer = PowerTransformer()
-        gauss_df = power_transformer.fit_transform(input_df)
-        return pd.DataFrame(gauss_df, columns=input_df.columns, index=input_df.index)
 
     def stratify_df(
         self, input_df: pd.DataFrame, test_size: float, stratify: List[str]
@@ -148,52 +111,6 @@ class DataPreprocess:
         else:
             raise ValueError("mode should be undersampling or oversampling")
 
-    def drop_outlier(self, input_df: pd.DataFrame, mode: str):
-        """
-        Don't Use it at the moment, not working
-
-        Parameters
-        ----------
-        input_df: input dataframe
-        mode: robust z-score method, IQR method, DBSCAN
-
-        Returns
-        -------
-        input_df: pandas dataframe without outliers
-        """
-
-        def _mad(col):
-            df_col = input_df[col].loc[input_df["Class"] == 0]
-            med = np.median(df_col)
-            ma = stats.median_abs_deviation(df_col)
-            z = (0.6745 * (df_col - med)) / ma
-            return list(z[np.abs(z) > 3].index)
-
-        def _iqr(col):
-            df = input_df[input_df["Class"] == 0]
-            df_col = df[col]
-            q25, q75 = df_col.quantile(0.25), df_col.quantile(0.75)
-            iqr = q75 - q25
-            low_thresh = q25 - iqr * 3
-            high_thresh = q75 + iqr * 3
-            df = df[(df[col] > high_thresh) | (df[col] < low_thresh)]
-            return df.index
-
-        if mode.casefold() == "z-score":
-            # this will be robust z-score aka median abs deviation method
-            temp = list(map(lambda x: _mad(x), input_df))
-            drop_idx = list(set(element for nested_list in temp for element in nested_list))
-            return input_df.drop(index=drop_idx, inplace=True)
-
-        elif mode.casefold() == "iqr":
-            temp = list(map(lambda x: _iqr(x), input_df))[:-1]
-            drop_idx = list(set(element for nested_list in temp for element in nested_list))
-            df = input_df.drop(index=drop_idx)
-            return df, drop_idx
-
-        else:
-            raise ValueError("mode should be either z-score, iqr, or dbscan")
-
     def preprocess(self, input_df: pd.DataFrame) -> pd.DataFrame:
         """
         Combining all the preprocess steps. So that we only need to use this attribute.
@@ -232,6 +149,5 @@ if __name__ == "__main__":
 
     df = data_prep.preprocess(original_Xtrain)
     df = pd.concat([df, original_ytrain], axis=1)
-    df, drop_idx = data_prep.drop_outlier(df, mode="iqr")
-    OUTPUT_PATH = "../data/feature/outlier_removed.parquet.snappy"
+    OUTPUT_PATH = "../data/feature/.parquet.snappy"
     data_prep.save_parquet(df, OUTPUT_PATH)
