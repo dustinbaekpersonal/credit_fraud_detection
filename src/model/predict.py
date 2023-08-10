@@ -39,13 +39,17 @@ def predict_model(
     y_true = y_test
 
     target_names = ["class 0", "class 1"]
-    print(classification_report(y_true=y_true, y_pred=y_pred, target_names=target_names))
-    print(confusion_matrix(y_true=y_true, y_pred=y_pred))
+    print(
+        f"Classification report is: \n \
+        {classification_report(y_true=y_true, y_pred=y_pred, target_names=target_names)}"
+    )
+    print(f"Confusion matrix is: \n {confusion_matrix(y_true=y_true, y_pred=y_pred)}")
     print(f"Average Precision Score: {average_precision_score(y_true=y_true, y_score=y_pred):.3f}")
     print(f"Recall score is {recall_score(y_true=y_true, y_pred=y_pred):.3f}")
     df_eval = pd.DataFrame({"pred": y_pred, "true": y_true})
     print(
-        df_eval[
+        "List of wrong predictions: \n"
+        + df_eval[
             (df_eval["true"] == 1) & (df_eval["pred"] == 0)
             | (df_eval["true"] == 0) & (df_eval["pred"] == 1)
         ].to_string()
@@ -64,8 +68,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     arguments = args.__dict__
 
-    path = "../data/raw/creditcard.csv"
+    PATH = "../data/raw/creditcard.csv"
 
-    filename = f"rf_treat_skew_{arguments['mode']}.pkl"
-    model_path = f"../data/trained_model/{filename}"
-    predict_model(path, model_path)
+    FILENAME = f"rf_clean_scaled_{arguments['mode']}.pkl"
+    MODEL_PATH = f"../data/trained_model/{FILENAME}"
+    predict_model(PATH, MODEL_PATH)

@@ -127,11 +127,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     arguments = args.__dict__
 
-    csv_path = "../data/raw/creditcard.csv"
-    pq_path = "../data/feature/treat_skew.parquet.snappy"
+    CSV_PATH = "../data/raw/creditcard.csv"
+    PQ_PATH = "../data/feature/outlier_removed.parquet.snappy"
 
-    filename = f"rf_treat_skew_{arguments['mode']}.pkl"
-    model_path = f"../data/trained_model/{filename}"
+    FILENAME = f"rf_outlier_removed_{arguments['mode']}.pkl"
+    MODEL_PATH = f"../data/trained_model/{FILENAME}"
     rf_params = {
         "bootstrap": [True, False],
         "max_depth": [10, 20, 30],
@@ -141,10 +141,10 @@ if __name__ == "__main__":
     }
 
     train_model(
-        path=pq_path,
+        path=PQ_PATH,
         model="rf",
         mode=arguments["mode"],
-        model_path=model_path,
+        model_path=MODEL_PATH,
         grid_search=False,
         grid_params=rf_params,
     )

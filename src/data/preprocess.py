@@ -1,11 +1,8 @@
 """This is python script for preprocessing data"""
 from typing import List, Tuple
 
-import matplotlib.figure
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from imblearn.over_sampling import SMOTE
 from scipy import stats
 from sklearn.impute import SimpleImputer
@@ -95,62 +92,6 @@ class DataPreprocess:
         gauss_df = power_transformer.fit_transform(input_df)
         return pd.DataFrame(gauss_df, columns=input_df.columns, index=input_df.index)
 
-    def check_skewed(self, input_df: pd.DataFrame) -> matplotlib.figure.Figure:
-        """
-        Checking if dataframe is skewed distributin
-
-        Parameters
-        ----------
-        input_df: pd.DataFrame
-
-        Return
-        ------
-        matplotlib.figure.Figure
-        """
-        var = input_df.columns
-
-        with plt.style.context("dark_background"):
-            _, axes = plt.subplots(10, 3, figsize=(10, 15), facecolor="m")
-            axes = axes.flatten()
-
-            for i, ax in enumerate(axes):
-                if i < len(var):
-                    sns.histplot(input_df[var[i]], ax=ax)
-                    ax.set_title(var[i], fontsize=20)
-                    ax.set_ylabel("Count", fontsize=20)  # set ylabel of the subplot
-                    ax.tick_params(axis="both", labelsize=15)
-                    ax.set_xlabel("")  # set empty string as x label of the subplot
-
-            plt.tight_layout()
-            plt.show()
-
-    def check_imbalanced(self, input_df: pd.DataFrame) -> matplotlib.figure.Figure:
-        """
-        Printing out Imbalanced Class dataset
-
-        Parameters
-        ----------
-        input_df: pandas dataframe
-
-        Returns
-        -------
-        bar plot
-        """
-        temp = input_df["Class"].value_counts()
-        df_class = pd.DataFrame({"Class": temp.index, "Value": temp.values})
-        normal_num = df_class.loc[0, "Value"]
-        fraud_num = df_class.loc[1, "Value"]
-        print(
-            f"Class 0: {normal_num/(normal_num+fraud_num)*100 : .2f}% \
-            is normal transaction ({normal_num})"
-        )
-        print(
-            f"Class 1: {fraud_num/(normal_num+fraud_num)*100 : .2f}% \
-            is fraudulent transaction ({fraud_num})"
-        )
-        sns.barplot(x="Class", y="Value", data=df_class)
-        plt.title("Class Distributions \n (0: No Fraud 1: Fraud)")
-
     def stratify_df(
         self, input_df: pd.DataFrame, test_size: float, stratify: List[str]
     ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -207,7 +148,7 @@ class DataPreprocess:
         else:
             raise ValueError("mode should be undersampling or oversampling")
 
-    def find_outlier(self, input_df: pd.DataFrame, mode: str):
+    def drop_outlier(self, input_df: pd.DataFrame, mode: str):
         """
         Don't Use it at the moment, not working
 
@@ -222,19 +163,21 @@ class DataPreprocess:
         """
 
         def _mad(col):
-            df_col = input_df[col].loc[input_df["Class"] == 1]
+            df_col = input_df[col].loc[input_df["Class"] == 0]
             med = np.median(df_col)
             ma = stats.median_abs_deviation(df_col)
             z = (0.6745 * (df_col - med)) / ma
             return list(z[np.abs(z) > 3].index)
 
         def _iqr(col):
-            df_col = input_df[col].loc[input_df["Class"] == 1]
+            df = input_df[input_df["Class"] == 0]
+            df_col = df[col]
             q25, q75 = df_col.quantile(0.25), df_col.quantile(0.75)
             iqr = q75 - q25
-            low_thresh = q25 - iqr * 1.5
-            high_thresh = q75 + iqr * 1.5
-            return input_df[(input_df[col] > high_thresh) | (input_df[col] < low_thresh)].index
+            low_thresh = q25 - iqr * 3
+            high_thresh = q75 + iqr * 3
+            df = df[(df[col] > high_thresh) | (df[col] < low_thresh)]
+            return df.index
 
         if mode.casefold() == "z-score":
             # this will be robust z-score aka median abs deviation method
@@ -243,9 +186,10 @@ class DataPreprocess:
             return input_df.drop(index=drop_idx, inplace=True)
 
         elif mode.casefold() == "iqr":
-            temp = list(map(lambda x: _iqr(x), input_df))
+            temp = list(map(lambda x: _iqr(x), input_df))[:-1]
             drop_idx = list(set(element for nested_list in temp for element in nested_list))
-            return input_df.drop(index=drop_idx, inplace=True)
+            df = input_df.drop(index=drop_idx)
+            return df, drop_idx
 
         else:
             raise ValueError("mode should be either z-score, iqr, or dbscan")
@@ -256,7 +200,6 @@ class DataPreprocess:
         """
         df = self.cleaning(input_df)
         df = self.scaling(df)
-        df = self.treat_skewness(df)
         return df
 
     def save_parquet(self, input_df: pd.DataFrame, parquet_path: str):
@@ -288,6 +231,7 @@ if __name__ == "__main__":
     ) = data_prep.stratify_df(df, 0.1, ["Class"])
 
     df = data_prep.preprocess(original_Xtrain)
-    OUTPUT_PATH = "../data/feature/treat_skew.parquet.snappy"
     df = pd.concat([df, original_ytrain], axis=1)
+    df, drop_idx = data_prep.drop_outlier(df, mode="iqr")
+    OUTPUT_PATH = "../data/feature/outlier_removed.parquet.snappy"
     data_prep.save_parquet(df, OUTPUT_PATH)
